@@ -10,6 +10,8 @@ namespace NuciNotifications.Api.Configuration
 
         public string Password { get; set; }
 
+        public string SenderName { get; set; } = "Notifier";
+
         public int MaximumAttempts { get; set; } = 3;
 
         public int DelayBetweenAttemptsInSeconds { get; set; } = 5;

@@ -34,6 +34,7 @@ Configuration is read from `appsettings.json` and can be overridden using standa
 - `Port` - SMTP port (default: 587)
 - `Username` - SMTP username (also used as the email sender)
 - `Password` - SMTP password
+- `SenderName` - Default sender name, if not specified in the request (default: Notifier)
 - `MaximumAttempts` - how many times to retry when an SMTP timeout occurs (default: 3)
 - `DelayBetweenAttemptsInSeconds` - delay between timeout retries (default: 5)
 
@@ -49,6 +50,7 @@ Example `appsettings.json`:
 		"port": 587,
 		"username": "[[SMTP_USERNAME]]",
 		"password": "[[SMTP_PASSWORD]]",
+        "senderName": "Notifier",
 		"maximumAttempts": 3,
 		"delayBetweenAttemptsInSeconds": 5
 	}
@@ -82,6 +84,7 @@ Request body:
 
 ```json
 {
+    "sender": "Sender User",
 	"recipient": "user@example.com",
 	"subject": "Hello",
 	"body": "Test message"
@@ -90,7 +93,8 @@ Request body:
 
 Notes:
 
-- All fields are required.
+- `sender` is optional. If it's not specified, the default one from the configuration (see `smtpSettings.senderName`) will be used instead.
+- `recipient`, `subject` and `body` are required.
 - Authorisation is enforced via an API key (see `securitySettings.apiKey`). The exact way the key (and optional HMAC token) is passed is defined by the `NuciAPI.Controllers` authorization implementation used by this project.
 
 ## License
