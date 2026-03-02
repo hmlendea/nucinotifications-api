@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-using NuciDAL.Repositories;
 using NuciNotifications.Api.Configuration;
 using NuciNotifications.Api.Service;
 
