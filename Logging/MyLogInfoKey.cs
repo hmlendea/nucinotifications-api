@@ -1,0 +1,19 @@
+using NuciLog.Core;
+
+namespace NuciNotifications.Api.Logging
+{
+    public sealed class MyLogInfoKey : LogInfoKey
+    {
+        MyLogInfoKey(string name) : base(name) { }
+
+        public static LogInfoKey Attempt => new MyLogInfoKey(nameof(Attempt));
+
+        public static LogInfoKey Sender => new MyLogInfoKey(nameof(Sender));
+
+        public static LogInfoKey Recipient => new MyLogInfoKey(nameof(Recipient));
+
+        public static LogInfoKey Subject => new MyLogInfoKey(nameof(Subject));
+
+        public static LogInfoKey Body => new MyLogInfoKey(nameof(Body));
+    }
+}

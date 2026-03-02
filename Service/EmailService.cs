@@ -3,10 +3,16 @@ using System.Net.Mail;
 using System.Threading;
 using NuciNotifications.Api.Requests;
 using NuciNotifications.Api.Configuration;
+using System.Collections.Generic;
+using NuciNotifications.Api.Logging;
+using NuciLog.Core;
+using System;
 
 namespace NuciNotifications.Api.Service
 {
-    public class EmailService(SmtpSettings settings) : IEmailService
+    public class EmailService(
+        SmtpSettings settings,
+        ILogger logger) : IEmailService
     {
         private readonly SmtpClient smtpClient = new(settings.Host, settings.Port)
         {
@@ -20,18 +26,34 @@ namespace NuciNotifications.Api.Service
 
         public void Send(SendEmailRequest request, int attemptsLeft)
         {
+            IEnumerable<LogInfo> logInfos =
+            [
+                new(MyLogInfoKey.Sender, settings.Username),
+                new(MyLogInfoKey.Recipient, request.Recipient),
+                new(MyLogInfoKey.Subject, request.Subject),
+                new(MyLogInfoKey.Body, request.Body)
+            ];
+
+            logger.Info(MyOperation.SendEmail, OperationStatus.Started, logInfos);
+
+            using MailMessage message = new(
+                settings.Username,
+                request.Recipient,
+                request.Subject,
+                request.Body);
+
             try
             {
-                using MailMessage message = new(
-                    settings.Username,
-                    request.Recipient,
-                    request.Subject,
-                    request.Body);
-
                 smtpClient.Send(message);
             }
             catch (SmtpException ex) when (ex.Message.Contains("timed out"))
             {
+                logger.Warn(
+                    MyOperation.SendEmail,
+                    OperationStatus.Failure,
+                    logInfos,
+                    new LogInfo(MyLogInfoKey.Attempt, settings.MaximumAttempts - attemptsLeft + 1));
+
                 if (attemptsLeft <= 0)
                 {
                     throw;
@@ -40,6 +62,16 @@ namespace NuciNotifications.Api.Service
                 Thread.Sleep(settings.DelayBetweenAttemptsInSeconds * 1000);
 
                 Send(request, attemptsLeft - 1);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(
+                    MyOperation.SendEmail,
+                    OperationStatus.Failure,
+                    ex,
+                    logInfos);
+
+                throw;
             }
         }
     }
