@@ -1,12 +1,12 @@
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Mail;
 using System.Threading;
+using NuciLog.Core;
 using NuciNotifications.Api.Requests;
 using NuciNotifications.Api.Configuration;
-using System.Collections.Generic;
 using NuciNotifications.Api.Logging;
-using NuciLog.Core;
-using System;
 
 namespace NuciNotifications.Api.Service
 {
