@@ -1,4 +1,4 @@
-using NuciNotifications.Api.Models;
+using NuciNotifications.Api.Requests;
 
 namespace NuciNotifications.Api.Service
 {

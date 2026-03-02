@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using System.Threading;
-using NuciNotifications.Api.Models;
+using NuciNotifications.Api.Requests;
 using NuciNotifications.Api.Configuration;
 
 namespace NuciNotifications.Api.Service

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using NuciAPI.Controllers;
-using NuciNotifications.Api.Models;
+using NuciNotifications.Api.Requests;
 using NuciNotifications.Api.Service;
 
 namespace NuciNotifications.Api.Controllers
