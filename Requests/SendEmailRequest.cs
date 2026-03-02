@@ -6,14 +6,19 @@ namespace NuciNotifications.Api.Requests
 {
     public class SendEmailRequest : NuciApiRequest
     {
+        [HmacOrder(1)]
+        public string Sender { get; set; }
+
         [Required]
-        [HmacOrder(0)]
+        [HmacOrder(2)]
         public string Recipient { get; set; }
 
-        [HmacOrder(10)]
+        [Required]
+        [HmacOrder(5)]
         public string Subject { get; set; }
 
-        [HmacOrder(20)]
+        [Required]
+        [HmacOrder(6)]
         public string Body { get; set; }
     }
 }

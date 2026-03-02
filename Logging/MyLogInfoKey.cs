@@ -8,7 +8,9 @@ namespace NuciNotifications.Api.Logging
 
         public static LogInfoKey Attempt => new MyLogInfoKey(nameof(Attempt));
 
-        public static LogInfoKey Sender => new MyLogInfoKey(nameof(Sender));
+        public static LogInfoKey SenderAddress => new MyLogInfoKey(nameof(SenderAddress));
+
+        public static LogInfoKey SenderName => new MyLogInfoKey(nameof(SenderName));
 
         public static LogInfoKey Recipient => new MyLogInfoKey(nameof(Recipient));
 
