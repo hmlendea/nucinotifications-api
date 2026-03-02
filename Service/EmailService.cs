@@ -26,13 +26,14 @@ namespace NuciNotifications.Api.Service
 
         public void Send(SendEmailRequest request, int attemptsLeft)
         {
-            string sender = string.IsNullOrEmpty(request.Sender) ?
-                settings.Username :
+            string senderName = string.IsNullOrWhiteSpace(request.Sender) ?
+                "Notifier" :
                 request.Sender;
 
             IEnumerable<LogInfo> logInfos =
             [
-                new(MyLogInfoKey.Sender, sender),
+                new(MyLogInfoKey.SenderAddress, settings.Username),
+                new(MyLogInfoKey.SenderName, senderName),
                 new(MyLogInfoKey.Recipient, request.Recipient),
                 new(MyLogInfoKey.Subject, request.Subject),
                 new(MyLogInfoKey.Body, request.Body)
@@ -41,10 +42,12 @@ namespace NuciNotifications.Api.Service
             logger.Info(MyOperation.SendEmail, OperationStatus.Started, logInfos);
 
             using MailMessage message = new(
-                sender,
+                settings.Username,
                 request.Recipient,
                 request.Subject,
                 request.Body);
+
+            message.From = new MailAddress(settings.Username, request.Sender);
 
             try
             {
