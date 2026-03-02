@@ -53,7 +53,9 @@ namespace NuciNotifications.Api.Service
             {
                 smtpClient.Send(message);
             }
-            catch (SmtpException ex) when (ex.Message.Contains("timed out"))
+            catch (SmtpException ex) when (
+                ex.Message.Contains("timed out") ||
+                ex.Message.Contains("timeout"))
             {
                 logger.Warn(
                     MyOperation.SendEmail,
