@@ -53,9 +53,10 @@ namespace NuciNotifications.Api.Service
             {
                 smtpClient.Send(message);
             }
-            catch (SmtpException ex) when (
-                ex.Message.Contains("timed out") ||
-                ex.Message.Contains("timeout"))
+            catch (SmtpException exception) when (
+                exception.Message.Contains("timed out") ||
+                exception.Message.Contains("timeout") ||
+                exception.Message.Contains("Timeout"))
             {
                 logger.Warn(
                     MyOperation.SendEmail,
@@ -65,19 +66,21 @@ namespace NuciNotifications.Api.Service
 
                 if (attemptsLeft <= 0)
                 {
-                    throw;
+                    throw new TimeoutException(
+                        "Failed to send the e-mail notification after the maximum number of attempts.",
+                        exception);
                 }
 
                 Thread.Sleep(settings.DelayBetweenAttemptsInSeconds * 1000);
 
                 Send(request, attemptsLeft - 1);
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
                 logger.Error(
                     MyOperation.SendEmail,
                     OperationStatus.Failure,
-                    ex,
+                    exception,
                     logInfos);
 
                 throw;
