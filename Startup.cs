@@ -4,6 +4,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
+using NuciAPI.Middleware;
+
 namespace NuciNotifications.Api
 {
     public class Startup(IConfiguration configuration)
@@ -16,12 +18,18 @@ namespace NuciNotifications.Api
 
             services
                 .AddConfigurations(Configuration)
+                .AddNuciApiScannerProtection()
+                .AddNuciApiReplayProtection()
                 .AddCustomServices();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            // Ensure the log stores exist
+            app.UseNuciApiExceptionHandling();
+            app.UseNuciApiScannerProtection();
+            app.UseNuciApiReplayProtection();
+            app.UseNuciApiRequestLogging();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
