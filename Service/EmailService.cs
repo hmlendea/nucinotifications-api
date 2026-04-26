@@ -35,11 +35,13 @@ namespace NuciNotifications.Api.Service
                 new(MyLogInfoKey.SenderAddress, settings.Username),
                 new(MyLogInfoKey.SenderName, senderName),
                 new(MyLogInfoKey.Recipient, request.Recipient),
-                new(MyLogInfoKey.Subject, request.Subject),
-                new(MyLogInfoKey.Body, request.Body)
+                new(MyLogInfoKey.Subject, request.Subject)
             ];
 
-            logger.Info(MyOperation.SendEmail, OperationStatus.Started, logInfos);
+            logger.Info(
+                MyOperation.SendEmail,
+                OperationStatus.Started,
+                logInfos);
 
             using MailMessage message = new(
                 settings.Username,
@@ -52,6 +54,11 @@ namespace NuciNotifications.Api.Service
             try
             {
                 smtpClient.Send(message);
+
+                logger.Info(
+                    MyOperation.SendEmail,
+                    OperationStatus.Success,
+                    logInfos);
             }
             catch (SmtpException exception) when (
                 exception.Message.Contains("timed out") ||
