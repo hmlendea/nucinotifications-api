@@ -35,8 +35,7 @@ namespace NuciNotifications.Api.Service
                 new(MyLogInfoKey.SenderAddress, settings.Username),
                 new(MyLogInfoKey.SenderName, senderName),
                 new(MyLogInfoKey.Recipient, request.Recipient),
-                new(MyLogInfoKey.Subject, request.Subject),
-                new(MyLogInfoKey.Body, request.Body)
+                new(MyLogInfoKey.Subject, request.Subject)
             ];
 
             logger.Info(
