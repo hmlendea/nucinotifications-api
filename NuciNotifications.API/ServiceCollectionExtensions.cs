@@ -27,6 +27,7 @@ namespace NuciNotifications.API
 
         public static IServiceCollection AddCustomServices(this IServiceCollection services) => services
             .AddSingleton<ILogger, NuciLogger>()
+            .AddSingleton<ISmtpClient, SmtpClientWrapper>()
             .AddSingleton<IEmailService, EmailService>();
     }
 }
