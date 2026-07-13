@@ -10,7 +10,7 @@ namespace NuciNotifications.API.Controllers
 {
     [Route("[controller]")]
     [ApiController]
-    public class EmailsController(
+    public class EmailController(
         IEmailService service,
         SecuritySettings securitySettings) : NuciApiController
     {
