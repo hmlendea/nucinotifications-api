@@ -1,34 +1,32 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Mail;
 using System.Threading;
+
 using NuciLog.Core;
-using NuciNotifications.API.Requests;
+
 using NuciNotifications.API.Configuration;
 using NuciNotifications.API.Logging;
+using NuciNotifications.API.Requests;
 
 namespace NuciNotifications.API.Service
 {
     public class EmailService(
         SmtpSettings settings,
+        ISmtpClient smtpClient,
         ILogger logger) : IEmailService
     {
-        private readonly SmtpClient smtpClient = new(settings.Host, settings.Port)
-        {
-            Credentials = new NetworkCredential(settings.Username, settings.Password),
-            EnableSsl = true,
-            Timeout = 200000
-        };
-
         public void Send(SendEmailRequest request)
             => Send(request, settings.MaximumAttempts);
 
-        public void Send(SendEmailRequest request, int attemptsLeft)
+        private void Send(SendEmailRequest request, int attemptsLeft)
         {
-            string senderName = string.IsNullOrWhiteSpace(request.Sender) ?
-                settings.SenderName :
-                request.Sender;
+            string senderName = settings.SenderName;
+
+            if (!string.IsNullOrWhiteSpace(request.Sender))
+            {
+                senderName = request.Sender;
+            }
 
             IEnumerable<LogInfo> logInfos =
             [
@@ -79,7 +77,6 @@ namespace NuciNotifications.API.Service
                 }
 
                 Thread.Sleep(settings.DelayBetweenAttemptsInSeconds * 1000);
-
                 Send(request, attemptsLeft - 1);
             }
             catch (Exception exception)
