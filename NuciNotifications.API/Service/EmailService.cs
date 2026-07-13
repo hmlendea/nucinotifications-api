@@ -4,11 +4,11 @@ using System.Net;
 using System.Net.Mail;
 using System.Threading;
 using NuciLog.Core;
-using NuciNotifications.Api.Requests;
-using NuciNotifications.Api.Configuration;
-using NuciNotifications.Api.Logging;
+using NuciNotifications.API.Requests;
+using NuciNotifications.API.Configuration;
+using NuciNotifications.API.Logging;
 
-namespace NuciNotifications.Api.Service
+namespace NuciNotifications.API.Service
 {
     public class EmailService(
         SmtpSettings settings,

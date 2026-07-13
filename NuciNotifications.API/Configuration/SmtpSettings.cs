@@ -1,4 +1,4 @@
-namespace NuciNotifications.Api.Configuration
+namespace NuciNotifications.API.Configuration
 {
     public sealed class SmtpSettings
     {

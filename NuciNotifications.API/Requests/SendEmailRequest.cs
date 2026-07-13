@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using NuciAPI.Requests;
 using NuciSecurity.HMAC;
 
-namespace NuciNotifications.Api.Requests
+namespace NuciNotifications.API.Requests
 {
     public class SendEmailRequest : NuciApiRequest
     {
