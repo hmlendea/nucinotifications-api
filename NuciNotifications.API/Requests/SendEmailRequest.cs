@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+
 using NuciAPI.Requests;
+
 using NuciSecurity.HMAC;
 
 namespace NuciNotifications.API.Requests
 {
-    public class SendEmailRequest : NuciApiRequest
+    public sealed class SendEmailRequest : NuciApiRequest
     {
         [HmacOrder(1)]
         public string Sender { get; set; }

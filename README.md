@@ -8,7 +8,7 @@ It’s meant to be deployed as a tiny “notifications gateway” that other app
 
 ## Features
 
-- Single endpoint: `POST /Email`
+- Single endpoint: `POST /Emails`
 - SMTP delivery with TLS (`EnableSsl = true`)
 - Retry on SMTP timeouts (configurable max attempts + delay)
 - Request authorization via API key

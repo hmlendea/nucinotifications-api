@@ -11,12 +11,16 @@ namespace NuciNotifications.API
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection AddConfigurations(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddConfigurations(
+            this IServiceCollection services,
+            IConfiguration configuration)
         {
             SecuritySettings securitySettings = new();
             SmtpSettings smtpSettings = new();
 
-            configuration.Bind(nameof(SecuritySettings), securitySettings);
+            configuration.Bind(
+                nameof(SecuritySettings),
+                securitySettings);
             configuration.Bind(nameof(SmtpSettings), smtpSettings);
 
             return services

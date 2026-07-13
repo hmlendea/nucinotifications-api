@@ -25,7 +25,9 @@ namespace NuciNotifications.API
                 .AddCustomServices();
         }
 
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(
+            IApplicationBuilder app,
+            IWebHostEnvironment env)
         {
             app.UseNuciApiExceptionHandling();
             app.UseNuciApiScannerProtection();
@@ -43,10 +45,7 @@ namespace NuciNotifications.API
             app.UseRouting();
             app.UseAuthorization();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
+            app.UseEndpoints(endpoints => endpoints.MapControllers());
         }
     }
 }

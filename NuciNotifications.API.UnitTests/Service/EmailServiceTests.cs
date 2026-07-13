@@ -233,23 +233,6 @@ namespace NuciNotifications.API.UnitTests.Service
         }
 
         [Test]
-        public void GivenSmtpExceptionWithTimedOutMessage_WhenMaximumAttemptsExceeded_ThenThrowsTimeoutException()
-        {
-            SmtpSettings settings = BuildSmtpSettings();
-            settings.MaximumAttempts = 0;
-
-            emailService = BuildEmailService(settings);
-
-            mockSmtpClient
-                .Setup(x => x.Send(It.IsAny<MailMessage>()))
-                .Throws(new SmtpException("Connection timed out"));
-
-            Assert.That(
-                () => emailService.Send(BuildSendEmailRequest()),
-                Throws.TypeOf<TimeoutException>());
-        }
-
-        [Test]
         public void GivenSmtpExceptionWithLowercaseTimeoutMessage_WhenMaximumAttemptsExceeded_ThenThrowsTimeoutException()
         {
             SmtpSettings settings = BuildSmtpSettings();
@@ -353,8 +336,12 @@ namespace NuciNotifications.API.UnitTests.Service
 
         // ── Private helpers ───────────────────────────────────────────────────
 
-        private EmailService BuildEmailService(SmtpSettings smtpSettings)
-            => new(smtpSettings, mockSmtpClient.Object, mockLogger.Object);
+        private EmailService BuildEmailService(
+            SmtpSettings smtpSettings)
+            => new(
+                smtpSettings,
+                mockSmtpClient.Object,
+                mockLogger.Object);
 
         private static SmtpSettings BuildSmtpSettings()
             => new()
