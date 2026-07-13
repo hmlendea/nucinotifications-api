@@ -1,6 +1,6 @@
-using NuciNotifications.Api.Requests;
+using NuciNotifications.API.Requests;
 
-namespace NuciNotifications.Api.Service
+namespace NuciNotifications.API.Service
 {
     public interface IEmailService
     {

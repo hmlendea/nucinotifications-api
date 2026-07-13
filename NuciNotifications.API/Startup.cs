@@ -8,7 +8,7 @@ using NuciAPI.Middleware.ExceptionHandling;
 using NuciAPI.Middleware.Logging;
 using NuciAPI.Middleware.Security;
 
-namespace NuciNotifications.Api
+namespace NuciNotifications.API
 {
     public class Startup(IConfiguration configuration)
     {

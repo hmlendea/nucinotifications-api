@@ -1,6 +1,6 @@
 using NuciLog.Core;
 
-namespace NuciNotifications.Api.Logging
+namespace NuciNotifications.API.Logging
 {
     public sealed class MyOperation : Operation
     {

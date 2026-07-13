@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using NuciAPI.Controllers;
-using NuciNotifications.Api.Configuration;
-using NuciNotifications.Api.Requests;
-using NuciNotifications.Api.Service;
+using NuciNotifications.API.Configuration;
+using NuciNotifications.API.Requests;
+using NuciNotifications.API.Service;
 
-namespace NuciNotifications.Api.Controllers
+namespace NuciNotifications.API.Controllers
 {
     [Route("[controller]")]
     [ApiController]

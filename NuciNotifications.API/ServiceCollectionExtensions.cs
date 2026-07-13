@@ -4,10 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using NuciLog;
 using NuciLog.Core;
 
-using NuciNotifications.Api.Configuration;
-using NuciNotifications.Api.Service;
+using NuciNotifications.API.Configuration;
+using NuciNotifications.API.Service;
 
-namespace NuciNotifications.Api
+namespace NuciNotifications.API
 {
     public static class ServiceCollectionExtensions
     {
