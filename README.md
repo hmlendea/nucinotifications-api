@@ -42,6 +42,7 @@ NuciNotifications API is a compact ASP.NET Core service that accepts authorised 
   - [Projects and Packages](#projects-and-packages)
   - [Directories](#directories)
 - [Architecture](#architecture)
+- [Security](#security)
 - [Deployment](#deployment)
 - [Contributing](#contributing)
 - [Project Engagement](#project-engagement)
@@ -367,6 +368,10 @@ The solution separates the deployable API from its automated unit tests.
 ## 🏗️ Architecture
 
 See the [architecture documentation](./ARCHITECTURE.md) for the system context, principal components, runtime flows, ownership boundaries, dependencies, constraints, and extension points.
+
+## 🛡️ Security
+
+See the [security policy](./SECURITY.md) for supported versions, vulnerability reporting, scope, and coordinated disclosure guidance.
 
 ## 🚢 Deployment
 
