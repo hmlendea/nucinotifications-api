@@ -245,6 +245,8 @@ The SMTP adapter is the repository's public transport extension point. Implement
 
 ## 🛡️ Privacy and Data
 
+See [PRIVACY.md](./PRIVACY.md) for the full data-handling document.
+
 | Data | Purpose | Storage | Retention | Optional |
 |------|---------|---------|-----------|----------|
 | API key and SMTP credentials | Authorise API calls and authenticate SMTP submissions. | Configuration provider and singleton process memory. | Process lifetime; provider retention is operator-defined. | No |
