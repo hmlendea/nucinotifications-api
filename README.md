@@ -44,6 +44,7 @@ NuciNotifications API is a compact ASP.NET Core service that accepts authorised 
 - [Architecture](#architecture)
 - [Security](#security)
 - [Deployment](#deployment)
+- [Documentation](#documentation)
 - [Contributing](#contributing)
 - [Project Engagement](#project-engagement)
 - [License](#license)
@@ -380,6 +381,20 @@ See the [security policy](./SECURITY.md) for supported versions, vulnerability r
 Deploy one self-contained release archive as an ASP.NET Core process. The operator must provide inbound HTTP or HTTPS routing, outbound connectivity to the SMTP server, protected configuration values, and write access for the configured file log destination.
 
 The repository contains no database, queue, container manifest, service manifest, or orchestration definition. Multiple replicas submit and log independently, and the application retains no shared delivery state.
+
+## 📚 Documentation
+
+Comprehensive repository documentation is available in the [`docs/`](./docs/) directory:
+
+| Document | Description |
+|----------|-------------|
+| [`overview.md`](./docs/overview.md) | Repository overview, capabilities, architecture diagram, and design constraints |
+| [`components.md`](./docs/components.md) | Detailed specifications for all 12 components |
+| [`execution-flows.md`](./docs/execution-flows.md) | 10 traced execution flows including startup, HTTP handling, SMTP delivery, and error paths |
+| [`configuration.md`](./docs/configuration.md) | Complete configuration reference with environment variables, binding behaviour, and examples |
+| [`testing.md`](./docs/testing.md) | Test architecture, 19 catalogued tests, execution commands, gaps, and recommended additions |
+| [`deployment.md`](./docs/deployment.md) | Build/publish, running (direct/systemd/Docker), operations, monitoring, and troubleshooting |
+| [`data-flow.md`](./docs/data-flow.md) | Data flows, transformations, lifecycle, security boundaries, privacy, and compliance |
 
 ## 🤝 Contributing
 
