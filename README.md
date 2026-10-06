@@ -388,6 +388,7 @@ Comprehensive repository documentation is available in the [`docs/`](./docs/) di
 
 | Document | Description |
 |----------|-------------|
+| [`api.md`](./docs/api.md) | Complete API reference: endpoint, request/response, authentication (API key & HMAC), examples |
 | [`overview.md`](./docs/overview.md) | Repository overview, capabilities, architecture diagram, and design constraints |
 | [`components.md`](./docs/components.md) | Detailed specifications for all 12 components |
 | [`execution-flows.md`](./docs/execution-flows.md) | 10 traced execution flows including startup, HTTP handling, SMTP delivery, and error paths |

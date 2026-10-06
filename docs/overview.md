@@ -101,6 +101,18 @@ NuciNotifications.slnx
 └── release.sh
 ```
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [`api.md`](./api.md) | Complete API reference: endpoint, request/response, authentication (API key & HMAC), examples |
+| [`components.md`](./components.md) | Detailed specifications for all 12 components |
+| [`execution-flows.md`](./execution-flows.md) | 10 traced execution flows including startup, HTTP handling, SMTP delivery, and error paths |
+| [`configuration.md`](./configuration.md) | Complete configuration reference with environment variables, binding behaviour, and examples |
+| [`testing.md`](./testing.md) | Test architecture, 19 catalogued tests, execution commands, gaps, and recommended additions |
+| [`deployment.md`](./deployment.md) | Build/publish, running (direct/systemd/Docker), operations, monitoring, and troubleshooting |
+| [`data-flow.md`](./data-flow.md) | Data flows, transformations, lifecycle, security boundaries, privacy, and compliance |
+
 ## Technology Stack
 
 | Layer | Technology |
