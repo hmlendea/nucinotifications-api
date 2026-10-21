@@ -45,6 +45,7 @@ NuciNotifications API is a compact ASP.NET Core service that accepts authorised 
 - [Security](#security)
 - [Deployment](#deployment)
 - [Documentation](#documentation)
+- [Code of Conduct](#code-of-conduct)
 - [Contributing](#contributing)
 - [Project Engagement](#project-engagement)
 - [License](#license)
@@ -396,6 +397,10 @@ Comprehensive repository documentation is available in the [`docs/`](./docs/) di
 | [`testing.md`](./docs/testing.md) | Test architecture, 19 catalogued tests, execution commands, gaps, and recommended additions |
 | [`deployment.md`](./docs/deployment.md) | Build/publish, running (direct/systemd/Docker), operations, monitoring, and troubleshooting |
 | [`data-flow.md`](./docs/data-flow.md) | Data flows, transformations, lifecycle, security boundaries, privacy, and compliance |
+
+## 📜 Code of Conduct
+
+This project follows the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 ## 🤝 Contributing
 
