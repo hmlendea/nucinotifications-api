@@ -410,6 +410,8 @@ When doing so, please:
 - Properly test all modifications, including edge cases and error conditions
 - Add tests for additional or modified functionality
 
+See the [contributing guidelines](./CONTRIBUTING.md) for details on how to report issues, suggest enhancements, and submit changes.
+
 ## 💝 Project Engagement
 
 Discovered a problem or have a suggestion? [Open an issue](https://github.com/hmlendea/nucinotifications-api/issues)!
