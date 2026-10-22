@@ -15,5 +15,9 @@ namespace NuciNotifications.API.Logging
         public static LogInfoKey Recipient => new MyLogInfoKey(nameof(Recipient));
 
         public static LogInfoKey Subject => new MyLogInfoKey(nameof(Subject));
+
+        public static LogInfoKey AttachmentCount => new MyLogInfoKey(nameof(AttachmentCount));
+
+        public static LogInfoKey AttachmentNames => new MyLogInfoKey(nameof(AttachmentNames));
     }
 }
