@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Mail;
 using System.Net.Mime;
+using System.Linq;
 using System.Threading;
 
 using NuciLog.Core;
@@ -39,7 +40,11 @@ namespace NuciNotifications.API.Service
                 new(MyLogInfoKey.SenderAddress, settings.Username),
                 new(MyLogInfoKey.SenderName, senderName),
                 new(MyLogInfoKey.Recipient, request.Recipient),
-                new(MyLogInfoKey.Subject, request.Subject)
+                new(MyLogInfoKey.Subject, request.Subject),
+                new(MyLogInfoKey.AttachmentCount, request.Attachments?.Length ?? 0),
+                new(
+                    MyLogInfoKey.AttachmentNames,
+                    string.Join(",", request.Attachments?.Select(attachment => attachment.FileName) ?? []))
             ];
 
             logger.Info(
