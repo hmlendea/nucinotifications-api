@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="NuciNotifications.API/NuciNotifications.API.csproj" />
+  <Project Path="NuciNotifications.API.ArchitectureTests/NuciNotifications.API.ArchitectureTests.csproj" />
   <Project Path="NuciNotifications.API.UnitTests/NuciNotifications.API.UnitTests.csproj" />
 </Solution>
