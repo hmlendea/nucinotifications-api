@@ -390,20 +390,17 @@ Request 1 ──────► EmailController.Send() ──────► Ema
 Request 2 ──────► EmailController.Send() ──────► EmailService.Send() ──────► SmtpClientWrapper.Send()
     │                                                                              │
     │                                                                              ▼
-    │                                                                    System.Net.Mail.SmtpClient.Send()  ◄─── SAME INSTANCE!
+    │                                                                    System.Net.Mail.SmtpClient.Send()  (separate client)
     │
     ▼
-... concurrent requests share the same SmtpClient instance ...
+... each submission owns a separate disposable SmtpClient instance ...
 ```
 
 **Implications:**
-- `System.Net.Mail.SmtpClient` is **not thread-safe** for concurrent `Send` calls
-- No locking, pooling, or connection management in repository
-- Concurrent requests may cause:
-  - Interleaved SMTP protocol commands
-  - Exceptions from `SmtpClient` internal state corruption
-  - Undefined delivery behaviour
-- Each `MailMessage` is properly disposed (per-request), but the client is not
+- Each synchronous submission creates its own client, avoiding shared-client state conflicts.
+- Each client is disposed whether submission succeeds or fails.
+- No application-level connection pool or concurrency limit exists; SMTP provider limits still apply.
+- Each delivery attempt owns and disposes its message and attachment streams.
 
 ---
 

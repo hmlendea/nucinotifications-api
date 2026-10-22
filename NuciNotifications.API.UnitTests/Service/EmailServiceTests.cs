@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Mail;
+using System.Net.Mime;
+using System.Text;
 
 using Moq;
 using NUnit.Framework;
@@ -335,6 +338,215 @@ namespace NuciNotifications.API.UnitTests.Service
         }
 
         // ── Private helpers ───────────────────────────────────────────────────
+
+        [Test]
+        public void GivenNoAttachment_WhenSending_ThenTheMessageHasNoAttachments()
+        {
+            mockSmtpClient.Setup(client => client.Send(It.IsAny<MailMessage>()))
+                .Callback<MailMessage>(message => Assert.That(message.Attachments, Is.Empty));
+
+            emailService.Send(BuildSendEmailRequest());
+
+            mockSmtpClient.Verify(client => client.Send(It.IsAny<MailMessage>()), Times.Once);
+        }
+
+        [TestCase("U29sYWlyZQ==")]
+        [TestCase("AAECA/7/")]
+        public void GivenAnAttachment_WhenSending_ThenTheFileNameAndBytesArePreserved(string content)
+        {
+            SendEmailRequest request = BuildSendEmailRequest();
+            request.Attachments = [new() { FileName = "praise-the-sun.bin", Content = content }];
+            Stream attachmentStream = null;
+
+            mockSmtpClient.Setup(client => client.Send(It.IsAny<MailMessage>()))
+                .Callback<MailMessage>(message =>
+                {
+                    Assert.That(message.Attachments, Has.Count.EqualTo(1));
+                    Attachment attachment = message.Attachments[0];
+                    attachmentStream = attachment.ContentStream;
+                    using MemoryStream receivedContent = new();
+                    attachment.ContentStream.CopyTo(receivedContent);
+
+                    Assert.That(attachment.Name, Is.EqualTo(request.Attachments[0].FileName));
+                    Assert.That(receivedContent.ToArray(), Is.EqualTo(Convert.FromBase64String(content)));
+                });
+
+            emailService.Send(request);
+
+            mockSmtpClient.Verify(client => client.Send(It.IsAny<MailMessage>()), Times.Once);
+            Assert.That(attachmentStream, Is.Not.Null);
+            Assert.That(attachmentStream.CanRead, Is.False);
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void GivenAnAttachment_WhenSmtpFails_ThenTheStreamIsDisposed(bool doesTimeout)
+        {
+            SmtpSettings settings = BuildSmtpSettings();
+            settings.MaximumAttempts = 0;
+            emailService = BuildEmailService(settings);
+            SendEmailRequest request = BuildSendEmailRequest();
+            request.Attachments = [new() { FileName = "praise-the-sun.txt", Content = "U29sYWlyZQ==" }];
+            Stream attachmentStream = null;
+            string failureMessage = "SMTP server rejected the message";
+
+            if (doesTimeout)
+            {
+                failureMessage = "Connection timed out";
+            }
+
+            mockSmtpClient.Setup(client => client.Send(It.IsAny<MailMessage>()))
+                .Callback<MailMessage>(message => attachmentStream = message.Attachments[0].ContentStream)
+                .Throws(new SmtpException(failureMessage));
+
+            Assert.That(() => emailService.Send(request), Throws.Exception);
+            Assert.That(attachmentStream, Is.Not.Null);
+            Assert.That(attachmentStream.CanRead, Is.False);
+            mockSmtpClient.Verify(client => client.Send(It.IsAny<MailMessage>()), Times.Once);
+        }
+
+        [Test]
+        public void GivenAnAttachment_WhenRetryingAfterATimeout_ThenEachAttemptHasTheCompleteFile()
+        {
+            SmtpSettings settings = BuildSmtpSettings();
+            settings.MaximumAttempts = 1;
+            emailService = BuildEmailService(settings);
+            SendEmailRequest request = BuildSendEmailRequest();
+            request.Attachments = [new() { FileName = "praise-the-sun.txt", Content = "U29sYWlyZQ==" }];
+            List<Stream> attachmentStreams = [];
+
+            mockSmtpClient.Setup(client => client.Send(It.IsAny<MailMessage>()))
+                .Callback<MailMessage>(message =>
+                {
+                    Assert.That(message.Attachments, Has.Count.EqualTo(1));
+                    Attachment attachment = message.Attachments[0];
+                    attachmentStreams.Add(attachment.ContentStream);
+                    using StreamReader reader = new(attachment.ContentStream, leaveOpen: true);
+
+                    Assert.That(attachment.Name, Is.EqualTo(request.Attachments[0].FileName));
+                    Assert.That(reader.ReadToEnd(), Is.EqualTo("Solaire"));
+
+                    if (attachmentStreams.Count.Equals(1))
+                    {
+                        throw new SmtpException("Connection timed out");
+                    }
+                });
+
+            emailService.Send(request);
+
+            mockSmtpClient.Verify(client => client.Send(It.IsAny<MailMessage>()), Times.Exactly(2));
+            Assert.That(attachmentStreams[0], Is.Not.SameAs(attachmentStreams[1]));
+            Assert.That(attachmentStreams, Has.All.Property(nameof(Stream.CanRead)).False);
+        }
+
+        [TestCase("report.pdf", true)]
+        [TestCase("REPORT.PDF", true)]
+        [TestCase("report.bin", false)]
+        public void GivenMultipleAttachments_WhenRetrying_ThenBytesAndMimeTypesArePreserved(
+            string fileName,
+            bool isPdf)
+        {
+            byte[] pdfBytes = BuildPdfBytes();
+            SendEmailRequest request = BuildSendEmailRequest();
+            request.Attachments =
+            [
+                new() { FileName = fileName, Content = Convert.ToBase64String(pdfBytes) },
+                new() { FileName = "greeting.txt", Content = "U29sYWlyZQ==" }
+            ];
+            List<Stream> streams = [];
+            int attempts = 0;
+            SmtpSettings settings = BuildSmtpSettings();
+            settings.MaximumAttempts = 1;
+            emailService = BuildEmailService(settings);
+            string expectedMediaType = MediaTypeNames.Application.Octet;
+
+            if (isPdf)
+            {
+                expectedMediaType = MediaTypeNames.Application.Pdf;
+            }
+
+            mockSmtpClient.Setup(client => client.Send(It.IsAny<MailMessage>()))
+                .Callback<MailMessage>(message =>
+                {
+                    attempts += 1;
+
+                    if (attempts > 1)
+                    {
+                        Assert.That(streams, Has.All.Property(nameof(Stream.CanRead)).False);
+                    }
+
+                    Assert.That(message.Attachments, Has.Count.EqualTo(2));
+                    Attachment document = message.Attachments[0];
+                    streams.Add(document.ContentStream);
+                    streams.Add(message.Attachments[1].ContentStream);
+                    using MemoryStream received = new();
+                    document.ContentStream.CopyTo(received);
+                    using StreamReader reader = new(message.Attachments[1].ContentStream, leaveOpen: true);
+
+                    Assert.That(document.Name, Is.EqualTo(fileName));
+                    Assert.That(document.ContentType.MediaType, Is.EqualTo(expectedMediaType));
+                    Assert.That(document.TransferEncoding, Is.EqualTo(TransferEncoding.Base64));
+                    Assert.That(received.ToArray(), Is.EqualTo(pdfBytes));
+                    Assert.That(message.Attachments[1].Name, Is.EqualTo("greeting.txt"));
+                    Assert.That(reader.ReadToEnd(), Is.EqualTo("Solaire"));
+
+                    if (attempts.Equals(1))
+                    {
+                        throw new SmtpException("Connection timed out");
+                    }
+                });
+
+            emailService.Send(request);
+
+            mockSmtpClient.Verify(client => client.Send(It.IsAny<MailMessage>()), Times.Exactly(2));
+            Assert.That(streams, Has.All.Property(nameof(Stream.CanRead)).False);
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void GivenOptionalAttachments_WhenSending_ThenNoFilesAreRequired(bool hasEmptyArray)
+        {
+            SendEmailRequest request = BuildSendEmailRequest();
+
+            if (hasEmptyArray)
+            {
+                request.Attachments = [];
+            }
+
+            mockSmtpClient.Setup(client => client.Send(It.IsAny<MailMessage>()))
+                .Callback<MailMessage>(message => Assert.That(message.Attachments, Is.Empty));
+
+            emailService.Send(request);
+
+            mockSmtpClient.Verify(client => client.Send(It.IsAny<MailMessage>()), Times.Once);
+        }
+
+        private static byte[] BuildPdfBytes()
+        {
+            string[] objects =
+            [
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << >> >>"
+            ];
+            StringBuilder document = new("%PDF-1.4\n");
+            StringBuilder crossReference = new("xref\n0 4\n0000000000 65535 f \n");
+            int objectNumber = 1;
+
+            foreach (string pdfObject in objects)
+            {
+                crossReference.Append(FormattableString.Invariant($"{document.Length:D10} 00000 n \n"));
+                document.Append(FormattableString.Invariant($"{objectNumber} 0 obj\n{pdfObject}\nendobj\n"));
+                objectNumber += 1;
+            }
+
+            int crossReferenceOffset = document.Length;
+            document.Append(crossReference);
+            document.Append(FormattableString.Invariant(
+                $"trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n{crossReferenceOffset}\n%%EOF\n"));
+
+            return Encoding.ASCII.GetBytes(document.ToString());
+        }
 
         private EmailService BuildEmailService(
             SmtpSettings smtpSettings)

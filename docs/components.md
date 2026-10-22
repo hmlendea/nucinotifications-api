@@ -261,11 +261,11 @@ public sealed class SendEmailRequest : NuciApiRequest
     public string Recipient { get; set; }
 
     [Required]
-    [HmacOrder(5)]
+    [HmacOrder(3)]
     public string Subject { get; set; }
 
     [Required]
-    [HmacOrder(6)]
+    [HmacOrder(4)]
     public string Body { get; set; }
 }
 ```
@@ -278,12 +278,14 @@ public sealed class SendEmailRequest : NuciApiRequest
 |-------|------|----------|------------|-------------|
 | Sender | string | No | 1 | Display name for sender; empty/omitted uses `SmtpSettings.SenderName` |
 | Recipient | string | Yes | 2 | Recipient email address |
-| Subject | string | Yes | 5 | Message subject |
-| Body | string | Yes | 6 | Plain-text message body |
+| Subject | string | Yes | 3 | Message subject |
+| Body | string | Yes | 4 | Plain-text message body |
 
-**Validation:** Data annotations (`[Required]`) enforced by `[ApiController]`
+**Attachments:** The request also implements `IValidatableObject` and exposes an optional `Attachments` array of [EmailAttachmentRequest](../NuciNotifications.API/Requests/EmailAttachmentRequest.cs) objects. Each entry requires a file name and Base64 content; directory separators and control characters are rejected. Omitted, null, and empty arrays are accepted. The scalar-only excerpt above omits these members; see the [API reference](api.md) for the full contract.
 
-**HMAC Ordering:** Field order values (1, 2, 5, 6) are compatibility-sensitive for signed clients
+**Validation:** Data annotations and attachment validation are enforced by `[ApiController]`.
+
+**HMAC Ordering:** Scalar fields use orders 1 through 4. Canonical attachment JSON follows at order 5; the raw array is excluded with `[HmacIgnore]`. See the [API reference](api.md#hmac-authentication) for the complete signing contract.
 
 **Dependencies:** `NuciAPI.Requests`, `NuciSecurity.HMAC`, `System.ComponentModel.DataAnnotations`
 
@@ -393,7 +395,7 @@ public class EmailService(
 
 **Lifetime:** Singleton (registered in DI)
 
-**Concurrency:** Not thread-safe for shared `SmtpClient` — see `SmtpClientWrapper`
+**Concurrency:** The SMTP adapter creates independent clients per submission; synchronous calls still occupy request threads.
 
 ---
 
@@ -442,11 +444,13 @@ public interface ISmtpClient
 ```csharp
 public sealed class SmtpClientWrapper(SmtpSettings settings) : ISmtpClient
 {
-    private readonly SmtpClient smtpClient = BuildSmtpClient(settings);
-
     private static int SmtpTimeoutInMilliseconds => 200_000;
 
-    public void Send(MailMessage message) => smtpClient.Send(message);
+    public void Send(MailMessage message)
+    {
+        using SmtpClient smtpClient = BuildSmtpClient(settings);
+        smtpClient.Send(message);
+    }
 
     private static SmtpClient BuildSmtpClient(SmtpSettings settings) => new(settings.Host, settings.Port)
     {
@@ -458,21 +462,19 @@ public sealed class SmtpClientWrapper(SmtpSettings settings) : ISmtpClient
 ```
 
 **Behaviour:**
-- Constructs **one** `System.Net.Mail.SmtpClient` instance at construction time
+- Constructs one separate `System.Net.Mail.SmtpClient` for each submission
 - Configures:
   - Host and port from `SmtpSettings`
   - Credentials (username/password) from `SmtpSettings`
   - `EnableSsl = true` — TLS required
   - `Timeout = 200_000` ms (200 seconds) — applies to each SMTP operation
-- Retains the `SmtpClient` instance for the **entire process lifetime** (singleton)
-- `Send` delegates directly to the wrapped client
-- **No disposal** of the wrapped `SmtpClient` — relies on process termination
+- The singleton wrapper retains settings, not a client
+- `Send` submits synchronously and disposes its local client on success or failure
 
 **Concurrency Implications:**
-- Single `SmtpClient` instance shared across all concurrent requests
-- `System.Net.Mail.SmtpClient` is **not thread-safe** for concurrent `Send` calls
-- No repository-defined synchronisation, pooling, or connection management
-- Concurrent requests may experience undefined behaviour or exceptions
+- Concurrent submissions use independent clients, avoiding concurrent `Send` calls on one instance
+- Each attempt establishes its own connection; no application-level pooling or concurrency limit exists
+- SMTP provider limits and network failures can still reject submissions
 
 **Dependencies:** `SmtpSettings`, `System.Net.Mail`, `System.Net`
 
@@ -561,8 +563,8 @@ public sealed class MyOperation : Operation
 - Middleware order and security features
 - Configuration binding and validation
 - Live SMTP integration
-- Concurrency and shared SmtpClient behaviour
-- HMAC signing/verification
+- Live concurrent SMTP submissions and provider connection limits
+- HTTP HMAC header processing (package-level attachment signing is unit-tested)
 - Logging destination configuration
 
 ---

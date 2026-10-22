@@ -338,9 +338,9 @@ grep '"Status":"Failure"' /var/log/nucinotifications.log | grep -v '"Attempt"' |
 ### Throughput Estimation
 ```
 Single request time ≈ SMTP latency + (retries × (SMTP timeout + delay))
-With defaults: ~200s timeout + 5s delay × 3 retries = up to ~615s worst case
+With defaults: 4 submission attempts × 200s timeout + 3 delays × 5s = approximately 815s
 Typical: ~100-500ms per successful delivery
-Max concurrent deliveries ≈ thread pool size (but shared SmtpClient serialises)
+Concurrent submissions use independent clients; capacity depends on request threads, network resources, and SMTP provider connection limits
 ```
 
 **Recommendation:** For high throughput, deploy multiple replicas behind load balancer.

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Mail;
+using System.Net.Mime;
 using System.Threading;
 
 using NuciLog.Core;
@@ -55,6 +57,14 @@ namespace NuciNotifications.API.Service
 
             try
             {
+                if (request.Attachments is not null)
+                {
+                    foreach (EmailAttachmentRequest attachment in request.Attachments)
+                    {
+                        AddAttachment(message, attachment.FileName, attachment.Content);
+                    }
+                }
+
                 smtpClient.Send(message);
 
                 logger.Info(
@@ -82,6 +92,8 @@ namespace NuciNotifications.API.Service
                         exception);
                 }
 
+                message.Dispose();
+
                 Thread.Sleep(
                     settings.DelayBetweenAttemptsInSeconds * MillisecondsPerSecond);
                 Send(request, attemptsLeft - 1);
@@ -96,6 +108,23 @@ namespace NuciNotifications.API.Service
 
                 throw;
             }
+        }
+
+        private static void AddAttachment(MailMessage message, string fileName, string content)
+        {
+            string mediaType = MediaTypeNames.Application.Octet;
+
+            if (string.Equals(Path.GetExtension(fileName), ".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                mediaType = MediaTypeNames.Application.Pdf;
+            }
+
+            Attachment attachment = new(
+                new MemoryStream(Convert.FromBase64String(content)),
+                fileName,
+                mediaType);
+            attachment.TransferEncoding = TransferEncoding.Base64;
+            message.Attachments.Add(attachment);
         }
     }
 }

@@ -2,7 +2,7 @@
 
 This document describes how NuciNotifications API at https://github.com/hmlendea/nucinotifications-api handles personal data. It covers the application behaviour and verified integrations described below. Where the software is self-hosted, the instance operator may have separate responsibilities described below.
 
-**Information reviewed:** 2026-10-06
+**Information reviewed:** 2026-10-22
 
 ## 📑 Table of Contents
 
@@ -36,6 +36,7 @@ The application sends no data from a self-hosted instance to project maintainers
 - API key for request authorisation (configured by operator)
 - SMTP credentials: host, port, username, password, sender display name (configured by operator)
 - Email submission request fields: optional sender display name, required recipient email address, required subject, required plain-text body (provided by calling applications per request)
+- Optional attachment file names and Base64-encoded contents, which may contain personal or sensitive data supplied by calling applications
 
 ### Data Generated or Collected by the Application
 
@@ -52,6 +53,7 @@ The application processes the data described above for these verified functions:
 - API-key authorisation of inbound HTTP requests — API key
 - SMTP authentication and TLS-enabled message submission — SMTP credentials
 - Construction and submission of plain-text email — sender display name, recipient, subject, body
+- Decoding and submission of optional attachments, including PDFs, to the configured SMTP server; no attachment format validation or malware scanning is performed
 - Structured logging of delivery attempts and outcomes — sender address, sender display name, recipient, subject, attempt, outcome
 
 ## 🗄️ Storage, Retention, and Deletion
@@ -60,6 +62,7 @@ The application processes the data described above for these verified functions:
 |---------------|------------------|------------------------|
 | API key and SMTP credentials | Configuration provider and singleton process memory | Process lifetime; provider retention is operator-defined |
 | Email request fields (sender, recipient, subject, body) | Request memory and the configured SMTP server | Request lifetime within this service; SMTP-provider retention is external |
+| Attachment file names and contents | Request memory, decoded in-memory streams, and the configured SMTP server | Streams are disposed after each delivery attempt, including before retries; request data remains for the request lifetime and SMTP-provider retention is external |
 | Delivery operation metadata (sender address, sender display name, recipient, subject, outcome) | Configured NuciLog destination; `logfile.log` by default | Operator-defined; no rotation policy is present in the application |
 
 For self-hosted deployments, the instance operator controls storage, deletion, and backups for all local data. The project does not operate a centralised service and therefore does not control operator data.
@@ -68,7 +71,7 @@ For self-hosted deployments, the instance operator controls storage, deletion, a
 
 | Service or integration | Purpose | Data involved | Configuration or documentation |
 |-----------------------|---------|---------------|--------------------------------|
-| Operator-configured SMTP server | Relays submitted plain-text email for final delivery | Sender address, sender display name, recipient, subject, body, SMTP credentials | `SmtpSettings` in `appsettings.json` or environment variables; see README.md Configuration section |
+| Operator-configured SMTP server | Relays submitted plain-text email and optional attachments for final delivery | Sender address, sender display name, recipient, subject, body, attachment file names and contents, SMTP credentials | `SmtpSettings` in `appsettings.json` or environment variables; see [README configuration](README.md#configuration) |
 | NuciLog (via NuciAPI middleware and EmailService) | Emits structured request and delivery operation records | Sender address, sender display name, recipient, subject, attempt, outcome, timestamps | `NuciLoggerSettings` in `appsettings.json` or environment variables; see README.md Configuration section |
 | NuciAPI middleware packages | Provides API-key authorisation, scanner protection, replay protection, request logging, exception handling | API key, HTTP request metadata | Pinned package versions in `NuciNotifications.API.csproj`; see README.md Dependencies section |
 
@@ -99,7 +102,7 @@ Verified technical and operational safeguards:
 - Scanner and replay protection middleware active by default
 - HTTPS redirection configured for inbound traffic
 - SMTP submission uses TLS with credential-based authentication (200-second timeout)
-- Delivery logs exclude message bodies and credentials
+- Application-generated delivery logs exclude message bodies, attachment file names and contents, and credentials; external request-logging middleware remains governed by its package contract
 - Configuration uses standard .NET providers; operators must inject production secrets through protected providers (environment variables, mounted secrets, etc.)
 - No database, queue, or durable delivery store exists in the application
 
