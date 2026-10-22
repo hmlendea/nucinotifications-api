@@ -261,11 +261,11 @@ public sealed class SendEmailRequest : NuciApiRequest
     public string Recipient { get; set; }
 
     [Required]
-    [HmacOrder(5)]
+    [HmacOrder(3)]
     public string Subject { get; set; }
 
     [Required]
-    [HmacOrder(6)]
+    [HmacOrder(4)]
     public string Body { get; set; }
 }
 ```
@@ -278,12 +278,12 @@ public sealed class SendEmailRequest : NuciApiRequest
 |-------|------|----------|------------|-------------|
 | Sender | string | No | 1 | Display name for sender; empty/omitted uses `SmtpSettings.SenderName` |
 | Recipient | string | Yes | 2 | Recipient email address |
-| Subject | string | Yes | 5 | Message subject |
-| Body | string | Yes | 6 | Plain-text message body |
+| Subject | string | Yes | 3 | Message subject |
+| Body | string | Yes | 4 | Plain-text message body |
 
 **Validation:** Data annotations (`[Required]`) enforced by `[ApiController]`
 
-**HMAC Ordering:** Field order values (1, 2, 5, 6) are compatibility-sensitive for signed clients
+**HMAC Ordering:** Scalar fields use orders 1 through 4. Canonical attachment JSON follows at order 5; the raw array is excluded with `[HmacIgnore]`. See the [API reference](api.md#hmac-authentication) for the complete signing contract.
 
 **Dependencies:** `NuciAPI.Requests`, `NuciSecurity.HMAC`, `System.ComponentModel.DataAnnotations`
 

@@ -4,7 +4,7 @@
 
 ### POST /Email
 
-Submits a plain-text email for delivery via the configured SMTP server.
+Submits a plain-text email with optional file attachments for delivery via the configured SMTP server.
 
 - **URL:** `/Email`
 - **Method:** `POST`
@@ -23,7 +23,13 @@ Submits a plain-text email for delivery via the configured SMTP server.
   "sender": "string (optional, display name)",
   "recipient": "string (required, email address)",
   "subject": "string (required)",
-  "body": "string (required)"
+  "body": "string (required)",
+  "attachments": [
+    {
+      "fileName": "string (required for each attachment)",
+      "content": "string (required, Base64-encoded file bytes)"
+    }
+  ]
 }
 ```
 
@@ -32,6 +38,27 @@ Submits a plain-text email for delivery via the configured SMTP server.
 - `recipient`: Email address of the recipient. **Required.**
 - `subject`: Email subject. **Required.**
 - `body`: Email body. **Required.**
+- `attachments`: Optional array of files. Omit it, use `null`, or supply `[]` to send without attachments. Multiple files, including multiple PDFs, are supported.
+- Each attachment requires `fileName` (at most 255 characters, without directory separators or line breaks) and `content` (non-empty Base64-encoded bytes, without a data-URL prefix). Null entries, missing fields, invalid file names, or invalid Base64 return **400 Bad Request**.
+- PDF files are sent byte-for-byte with MIME type `application/pdf` and Base64 transfer encoding when their file name ends in `.pdf` (case-insensitive). Other files use `application/octet-stream`. The API transports files without parsing or converting their contents; SMTP providers may impose their own size or attachment policies.
+- Only the `attachments` array supplies files; it supports zero, one, or multiple entries. There is no file-extension allowlist: text, CSV, JSON, images, Office documents, ZIP archives, and other binary files can be attached. Files are transported unchanged, not validated for their format or scanned for malware.
+- Attachment content stays in memory and is disposed with the email after delivery attempts. No server-side file path or remote URL is read. Existing HTTP request-size and SMTP message-size limits still apply; Base64 increases payload size by approximately one third.
+
+### Attachment Example
+
+```json
+{
+  "recipient": "vasile.ciupitu@gmail.com",
+  "subject": "Praise the Sun!",
+  "body": "The attached files contain greetings.",
+  "attachments": [
+    { "fileName": "greeting.txt", "content": "U29sYWlyZQ==" },
+    { "fileName": "another-greeting.txt", "content": "U29sYWlyZQ==" }
+  ]
+}
+```
+
+This attaches two text files containing `Solaire`. For a PDF, use a `.pdf` file name and Base64-encode the complete original PDF bytes as `content`. Requests remain `application/json`; multipart uploads are not required.
 
 ### HMAC Authentication
 
@@ -40,9 +67,11 @@ Submits a plain-text email for delivery via the configured SMTP server.
 - **Fields Used:**
   - `sender` (HmacOrder: 1)
   - `recipient` (HmacOrder: 2)
-  - `subject` (HmacOrder: 5)
-  - `body` (HmacOrder: 6)
-- **Order:** Fields are concatenated in HmacOrder (1, 2, 5, 6) for HMAC computation.
+  - `subject` (HmacOrder: 3)
+  - `body` (HmacOrder: 4)
+  - `AttachmentsSignatureContent` (HmacOrder: 5, computed server-side; not a JSON input field)
+- **Order:** Fields are concatenated in HmacOrder (1, 2, 3, 4, 5). For non-empty `attachments`, the final value is the compact JSON array serialized with .NET `JsonSerializerOptions.Web`, preserving array order and using `fileName` then `content` for each entry. For example: `[{"fileName":"report.pdf","content":"JVBERi0xLjQ="}]`. Match .NET JSON escaping exactly when generating signatures in other languages. Null or empty arrays contribute an empty string.
+- **Attachment Signing:** `AttachmentsSignatureContent` provides a deterministic string for signing the complete array, including file names, contents, and ordering. It is derived from `attachments` and excluded from request JSON; clients must include the equivalent string when computing their HMAC.
 - **Algorithm:** HMAC-SHA256 (as defined by NuciSecurity.HMAC package)
 - **How to Compute:**
   1. Concatenate the values of the fields in HmacOrder (missing/empty fields are treated as empty strings).
@@ -78,7 +107,7 @@ Content-Type: application/json
 ```python
 import hmac, hashlib, urllib.parse
 
-fields = [sender, recipient, subject, body]
+fields = [sender, recipient, subject, body, attachments_signature_content]
 key = api_key.encode()
 msg = ''.join(fields).encode()
 token = hmac.new(key, msg, hashlib.sha256).digest()

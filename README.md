@@ -53,6 +53,7 @@ NuciNotifications API is a compact ASP.NET Core service that accepts authorised 
 ## ✨ Capabilities
 
 - Submit plain-text email through one `POST /Email` endpoint.
+- Attach multiple optional files, including PDFs, through the JSON `attachments` array with file names and Base64-encoded bytes.
 - Centralise SMTP credentials outside calling applications.
 - Protect requests with an API key and integrate with the NuciAPI HMAC request contract.
 - Configure SMTP identity, timeout retries, retry delays, and structured file logging through standard .NET configuration providers.
@@ -83,8 +84,9 @@ The request body contains:
 | `recipient` | `string` | Yes | Recipient email address. |
 | `subject` | `string` | Yes | Message subject. |
 | `body` | `string` | Yes | Plain-text message body. |
+| `attachments` | `array` | No | Files containing required `fileName` and Base64 `content`. Omitted, `null`, and empty arrays send no files. PDF names use `application/pdf`. |
 
-A successful SMTP submission returns HTTP `200` with the standard NuciAPI success response. For signed requests, add a URL-encoded token through the `X-HMAC` header. The email fields retain HMAC order values `sender: 1`, `recipient: 2`, `subject: 5`, and `body: 6`.
+A successful SMTP submission returns HTTP `200` with the standard NuciAPI success response. For signed requests, add a URL-encoded token through the `X-HMAC` header. HMAC order values are `sender: 1`, `recipient: 2`, `subject: 3`, and `body: 4`; the ordered attachment array contributes its canonical JSON at order 5. See the [API reference](docs/api.md#attachment-example) for examples and exact signing rules.
 
 ## ⚠️ Known Limitations
 
@@ -370,6 +372,8 @@ The solution separates the deployable API from its automated unit tests.
 | `.github/workflows` | Defines continuous-integration automation. |
 
 ## 🏗️ Architecture
+
+NuciNotifications API uses a controller-service-adapter structure; the service builds each disposable email and its optional in-memory attachments before synchronous SMTP submission. PDF attachments retain their original bytes and use the `application/pdf` MIME type.
 
 See the [architecture documentation](./ARCHITECTURE.md) for the system context, principal components, runtime flows, ownership boundaries, dependencies, constraints, and extension points.
 

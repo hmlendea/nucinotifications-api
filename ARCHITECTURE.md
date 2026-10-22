@@ -156,8 +156,8 @@ flowchart LR
 
 | Data or Store | Owner | Representation and Storage | Lifecycle or Consistency |
 |---------------|-------|----------------------------|--------------------------|
-| `SendEmailRequest` | HTTP boundary | In-memory model containing optional `Sender` and required `Recipient`, `Subject`, and `Body` fields | Created by model binding for one request; not persisted by application code |
-| `MailMessage` | `EmailService` | In-memory `System.Net.Mail.MailMessage` containing the configured sender address and request content | Constructed and disposed for each delivery attempt |
+| `SendEmailRequest` | HTTP boundary | In-memory model containing optional `Sender`, required `Recipient`, `Subject`, and `Body`, and an optional `Attachments` array supporting zero, one, or multiple file names and Base64 contents | Created by model binding for one request; not persisted by application code |
+| `MailMessage` | `EmailService` | In-memory `System.Net.Mail.MailMessage` containing the configured sender address, request content, and optional attachments decoded into individual memory streams; PDF files use `application/pdf` | Constructed for each delivery attempt; disposal also releases attachments and their streams, including on failures |
 | Security and SMTP settings | Composition root | Plain .NET objects bound from host configuration | Singleton snapshot; runtime provider changes are not observed without process reconstruction |
 | Delivery log records | `EmailService` and request-logging middleware | NuciLog operation records; `appsettings.json` selects `logfile.log` as the default file destination | Append and retention semantics belong to NuciLog and the operator; no rotation policy is present here |
 
@@ -165,7 +165,7 @@ flowchart LR
 
 | Interface or Integration | Direction | Contract | Owner | Failure Semantics |
 |--------------------------|-----------|----------|-------|-------------------|
-| `POST /Email` | Inbound | HTTP JSON with optional `sender` and required `recipient`, `subject`, and `body`; API-key policy supplied to `ProcessRequest` | `EmailController` | `[ApiController]`, `ProcessRequest`, and exception middleware own rejection and HTTP translation; exact status mappings reside in external NuciAPI packages |
+| `POST /Email` | Inbound | HTTP JSON with optional `sender`, required `recipient`, `subject`, and `body`, and an optional file attachment as documented in the [API reference](docs/api.md); API-key policy supplied to `ProcessRequest` | `EmailController` | `[ApiController]`, `ProcessRequest`, and exception middleware own rejection and HTTP translation; exact status mappings reside in external NuciAPI packages |
 | SMTP submission | Outbound | Synchronous `System.Net.Mail` submission to configured host and port, authenticated by username and password, with TLS enabled and a 200-second client timeout | `SmtpClientWrapper` | Text-recognised timeout exceptions are retried by `EmailService`; other failures are logged and rethrown |
 | NuciLog destination | Outbound | Structured request and `SendEmail` operation records; default destination is `logfile.log` | NuciAPI request logger and `EmailService` | Logger degradation or destination-failure semantics are package-owned and not defined in this repository |
 | .NET host configuration | Inbound | Default host providers plus the copied `appsettings.json`; hierarchical environment variables can override values | `Program` and `ServiceCollectionExtensions` | Missing or malformed values are not validated explicitly during startup |
@@ -269,7 +269,7 @@ There is no database, queue, container manifest, service manifest, or repository
 |----------|-------|-----------|--------------|---------------|
 | `POST /Email` | `EmailController` | HTTP POST route remains `/Email` and invokes one email-delivery operation | No controller integration test currently verifies the route or response | Route or method changes require coordinated client migration and new integration coverage |
 | `SendEmailRequest` | HTTP boundary | `sender` is optional; `recipient`, `subject`, and `body` are required | Data annotations are present; service tests verify value transfer but not model binding | Field removal, renaming, or requirement changes require an explicit API compatibility decision |
-| HMAC field ordering | `SendEmailRequest` | `Sender`, `Recipient`, `Subject`, and `Body` retain order values 1, 2, 5, and 6 respectively | No automated signing-contract test is present | Order changes require coordinated signed-client migration and package-level verification |
+| HMAC field ordering | `SendEmailRequest` | Sender, recipient, subject, and body use orders 1 through 4; canonical ordered attachment JSON contributes at order 5, or an empty string for absent files | Canonical array content is unit-tested; package-level signing is not | Relative order changes require coordinated signed-client migration and package-level verification |
 | Configuration sections | Composition root | `SecuritySettings`, `SmtpSettings`, and `NuciLoggerSettings` names and property shapes remain bindable by standard providers | Exercised indirectly at runtime; no configuration-binding test is present | Renames require compatible aliases or coordinated deployment configuration changes |
 | Sender identity | `EmailService` | Configured SMTP username is the sender address; non-empty request sender overrides only the display name, otherwise configured `SenderName` applies | Covered by `EmailServiceTests` | Changes can alter relay acceptance and visible sender identity and therefore require behavioural tests |
 
@@ -277,7 +277,9 @@ There is no database, queue, container manifest, service manifest, or repository
 
 [NuciNotifications.API.UnitTests](NuciNotifications.API.UnitTests/NuciNotifications.API.UnitTests.csproj) uses NUnit and Moq and references the API project directly. [EmailServiceTests.cs](NuciNotifications.API.UnitTests/Service/EmailServiceTests.cs) verifies SMTP invocation, sender and message mapping, default display-name selection, operation logging, recognised timeout retries, terminal timeout translation, and propagation of non-timeout failures. The test substitutes both `ISmtpClient` and `ILogger`, so it verifies application orchestration without network or filesystem effects.
 
-There is no automated controller, model-binding, middleware-order, API-key, HMAC, configuration-binding, logger-destination, live SMTP, concurrency, deployment, or end-to-end test. CI performs restore, compilation, and the available unit tests but does not verify delivery through a real SMTP provider.
+Attachment tests additionally verify binary content, PDF MIME types and Base64 transfer encoding, multiple optional files, retry reconstruction, and stream disposal after success or failure. [SendEmailRequestTests.cs](NuciNotifications.API.UnitTests/Requests/SendEmailRequestTests.cs) verifies attachment validation, JSON deserialisation, and canonical signing content. Attachments are not read from local paths or remote URLs; their size remains subject to host and SMTP limits.
+
+There is no automated controller, HTTP model-binding, middleware-order, API-key, HMAC, configuration-binding, logger-destination, live SMTP, concurrency, deployment, or end-to-end test. CI performs restore, compilation, and the available unit tests but does not verify delivery through a real SMTP provider.
 
 Execute the principal automated verification with:
 
