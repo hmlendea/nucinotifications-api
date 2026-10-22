@@ -69,7 +69,7 @@ This repository contains:
 
 - **Synchronous delivery** — HTTP request blocks until SMTP submission completes or fails
 - **No durable state** — No database, queue, or delivery ledger; success = SMTP submission without exception
-- **Shared SMTP client** — Singleton `SmtpClient` without repository-defined concurrency control
+- **SMTP connections** — Separate disposable clients per submission, without application-level pooling or concurrency limits
 - **Configuration snapshot** — Settings bound once at startup; no runtime reload or validation
 - **Package-owned HTTP semantics** — Authorisation, replay, logging, exception mapping in NuciAPI packages
 - **Timeout classification** — String-based detection of "timed out"/"timeout"/"Timeout" in exception messages

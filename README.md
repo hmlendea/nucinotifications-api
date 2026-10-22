@@ -96,7 +96,7 @@ Signed clients must adopt the updated request contract even when no attachments 
 - `smtpSettings.maximumAttempts` represents timeout retries after the initial submission; its default of `3` permits up to four SMTP submissions.
 - A timeout does not establish whether the SMTP server accepted a preceding attempt. Retries can therefore submit the same message more than once.
 - The service has no queue, delivery ledger, status endpoint, or reconciliation process. HTTP success confirms SMTP submission, not recipient delivery.
-- Runtime services share one singleton SMTP client without repository-defined concurrency control.
+- Each SMTP submission uses a separate disposable client; there is no application-level concurrency limit or connection pool.
 
 ## 🖥️ System Requirements
 

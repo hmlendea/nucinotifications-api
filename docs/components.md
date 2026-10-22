@@ -395,7 +395,7 @@ public class EmailService(
 
 **Lifetime:** Singleton (registered in DI)
 
-**Concurrency:** Not thread-safe for shared `SmtpClient` — see `SmtpClientWrapper`
+**Concurrency:** The SMTP adapter creates independent clients per submission; synchronous calls still occupy request threads.
 
 ---
 
@@ -444,11 +444,13 @@ public interface ISmtpClient
 ```csharp
 public sealed class SmtpClientWrapper(SmtpSettings settings) : ISmtpClient
 {
-    private readonly SmtpClient smtpClient = BuildSmtpClient(settings);
-
     private static int SmtpTimeoutInMilliseconds => 200_000;
 
-    public void Send(MailMessage message) => smtpClient.Send(message);
+    public void Send(MailMessage message)
+    {
+        using SmtpClient smtpClient = BuildSmtpClient(settings);
+        smtpClient.Send(message);
+    }
 
     private static SmtpClient BuildSmtpClient(SmtpSettings settings) => new(settings.Host, settings.Port)
     {
@@ -460,21 +462,19 @@ public sealed class SmtpClientWrapper(SmtpSettings settings) : ISmtpClient
 ```
 
 **Behaviour:**
-- Constructs **one** `System.Net.Mail.SmtpClient` instance at construction time
+- Constructs one separate `System.Net.Mail.SmtpClient` for each submission
 - Configures:
   - Host and port from `SmtpSettings`
   - Credentials (username/password) from `SmtpSettings`
   - `EnableSsl = true` — TLS required
   - `Timeout = 200_000` ms (200 seconds) — applies to each SMTP operation
-- Retains the `SmtpClient` instance for the **entire process lifetime** (singleton)
-- `Send` delegates directly to the wrapped client
-- **No disposal** of the wrapped `SmtpClient` — relies on process termination
+- The singleton wrapper retains settings, not a client
+- `Send` submits synchronously and disposes its local client on success or failure
 
 **Concurrency Implications:**
-- Single `SmtpClient` instance shared across all concurrent requests
-- `System.Net.Mail.SmtpClient` is **not thread-safe** for concurrent `Send` calls
-- No repository-defined synchronisation, pooling, or connection management
-- Concurrent requests may experience undefined behaviour or exceptions
+- Concurrent submissions use independent clients, avoiding concurrent `Send` calls on one instance
+- Each attempt establishes its own connection; no application-level pooling or concurrency limit exists
+- SMTP provider limits and network failures can still reject submissions
 
 **Dependencies:** `SmtpSettings`, `System.Net.Mail`, `System.Net`
 
@@ -563,8 +563,8 @@ public sealed class MyOperation : Operation
 - Middleware order and security features
 - Configuration binding and validation
 - Live SMTP integration
-- Concurrency and shared SmtpClient behaviour
-- HMAC signing/verification
+- Live concurrent SMTP submissions and provider connection limits
+- HTTP HMAC header processing (package-level attachment signing is unit-tested)
 - Logging destination configuration
 
 ---

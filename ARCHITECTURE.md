@@ -136,7 +136,7 @@ The principal runtime sequence is:
 | `EmailController` | Own `POST /Email`, create its API-key policy, and delegate request processing | `NuciApiController`, `IEmailService`, `SecuritySettings` | Activated by ASP.NET Core for an HTTP request |
 | `SecuritySettings` and `SmtpSettings` | Retain the configuration snapshot consumed by runtime collaborators | .NET configuration binding | Singleton objects bound during service registration |
 | `EmailService` | Construct email messages, select sender identity, log delivery state, and execute retry policy | `SmtpSettings`, `ISmtpClient`, `ILogger` | Singleton |
-| `SmtpClientWrapper` | Configure and invoke one `System.Net.Mail.SmtpClient` with credentials, TLS, and a 200-second timeout | `SmtpSettings`, `System.Net.Mail`, SMTP server | Singleton wrapper retaining one client instance for the process lifetime |
+| `SmtpClientWrapper` | Configure and invoke a separate `System.Net.Mail.SmtpClient` for each submission with credentials, TLS, and a 200-second timeout | `SmtpSettings`, `System.Net.Mail`, SMTP server | Singleton wrapper; each client is disposed when its submission returns or throws |
 | `NuciLogger` | Emit structured operation records | NuciLog configuration and destination | Singleton |
 
 ## 💾 Data Architecture
@@ -206,7 +206,7 @@ The default logger configuration enables file output to `logfile.log`. The repos
 
 The endpoint remains occupied until SMTP submission, retry completion, or failure. Both `SmtpClient.Send` and retry delays are synchronous; `Thread.Sleep` retains a request-processing thread during every delay. There is no queue, cancellation token, timeout budget spanning all attempts, concurrency limit, or backpressure mechanism.
 
-All custom services are singletons. Consequently, concurrent requests invoke the same `SmtpClientWrapper` and its retained `SmtpClient` instance without repository-defined synchronisation. Each `MailMessage` is disposed by `EmailService`, but the wrapper does not implement explicit disposal for its retained SMTP client. These lifetime choices constrain concurrency and deterministic resource release.
+All custom services are singletons, but `SmtpClientWrapper` creates a separate client for each submission rather than sharing mutable transport state across requests. Each client is disposed on success or failure. `EmailService` owns and disposes each `MailMessage` and its attachment streams. Concurrent submissions establish independent connections; no application-level connection pool or concurrency limit is implemented.
 
 ## 🧭 Dependency Direction and Rules
 
@@ -250,7 +250,7 @@ The principal dependency rules are:
 
 The deployment unit is the output of [NuciNotifications.API.csproj](NuciNotifications.API/NuciNotifications.API.csproj), executed as one ASP.NET Core process. Kestrel addresses, environment selection, and shutdown signals follow standard host configuration. The service requires inbound HTTP connectivity, outbound connectivity to the configured SMTP host and port, access to injected secrets, and write access when file logging is enabled.
 
-There is no database, queue, container manifest, service manifest, or repository-defined orchestration. The process retains configuration, logger, email service, and SMTP client instances in memory. Functional email state is not persisted, although local log files create per-instance operational state. Multiple replicas would submit and log independently, with no shared delivery ledger or coordination.
+There is no database, queue, container manifest, service manifest, or repository-defined orchestration. The process retains configuration, logger, email service, and the SMTP adapter in memory; SMTP clients exist only for individual submissions. Functional email state is not persisted, although local log files create per-instance operational state. Multiple replicas would submit and log independently, with no shared delivery ledger or coordination.
 
 [dotnet.yml](.github/workflows/dotnet.yml) restores, compiles, and tests the solution on Ubuntu for pushes and pull requests to `master`. [release.sh](release.sh) downloads and executes a remote .NET 10 release script at invocation time; its packaging destination and deployment topology are not defined in this repository, and its unpinned remote content can vary independently.
 
@@ -259,7 +259,7 @@ There is no database, queue, container manifest, service manifest, or repository
 | Process topology | One ASP.NET Core web process containing all runtime components | A process failure interrupts both HTTP acceptance and in-progress SMTP submission |
 | Persistent state | No delivery store; optional local NuciLog file output | Delivery history cannot be queried or recovered from application state; logs are replica-local unless externalised |
 | Network | Inbound HTTP with HTTPS redirection and outbound TLS-enabled SMTP | Operators must configure certificates, proxy forwarding, DNS, firewall access, SMTP credentials, and relay permissions |
-| Scaling | No repository-defined coordination, queue, or shared mutable domain state | Replicas can receive requests independently, but each retains its own SMTP client and log destination |
+| Scaling | No repository-defined coordination, queue, or shared mutable domain state | Replicas receive requests independently, create SMTP clients per submission, and retain separate log destinations |
 | Availability and recovery | The HTTP request waits for SMTP completion and retries | SMTP latency and outages directly consume request capacity; process termination loses in-progress operations |
 | Release automation | Local script delegates to a remotely hosted script | Reproducibility and deployment behaviour depend upon external script availability and content |
 
@@ -294,7 +294,7 @@ dotnet test --no-build --verbosity normal
 - **Synchronous Delivery:** SMTP submission and retry delays execute within the HTTP request, so provider latency and outage duration directly consume request threads and client response time.
 - **Retry Semantics:** `MaximumAttempts` currently acts as the number of retries after the initial attempt; a value of 1 permits two SMTP sends. Timeout classification depends upon three case-sensitive message fragments rather than an SMTP status or exception property.
 - **Duplicate Delivery Risk:** A timeout does not establish whether the SMTP provider accepted the preceding submission, and there is no idempotency or delivery ledger; a retry can therefore submit the same message more than once.
-- **Shared SMTP Client:** Every request reaches one singleton `SmtpClient` without repository-defined serialisation, pooling, or concurrency protection.
+- **SMTP Connections:** Each submission creates a separate disposable SMTP client. This prevents concurrent use of one client but does not limit simultaneous connections or reuse authenticated sessions across submissions.
 - **Configuration Snapshot:** Settings are bound once and are not explicitly validated, so invalid numbers, absent secrets, or unresolved tokens can survive startup and fail during request processing.
 - **Package-Owned HTTP Semantics:** Authorisation, replay protection, request logging, and exception-to-response details reside in external packages, limiting repository-local verification and requiring care during package upgrades.
 - **Local Operational State:** Default file logging creates privacy, retention, disk-capacity, and multi-replica aggregation responsibilities that the service does not manage.

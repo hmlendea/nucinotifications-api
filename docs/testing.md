@@ -33,7 +33,7 @@ NuciNotifications.API.UnitTests/
 | Configuration binding | ❌ 0 tests | — |
 | SmtpClientWrapper / live SMTP | ❌ 0 tests | — |
 | HMAC signing/verification | Package round-trip and attachment tampering tests | [SendEmailRequestTests.cs](../NuciNotifications.API.UnitTests/Requests/SendEmailRequestTests.cs) |
-| Concurrency / shared SmtpClient | ❌ 0 tests | — |
+| Live concurrent SMTP submissions | ❌ 0 tests | — |
 | End-to-end integration | ❌ 0 tests | — |
 
 **Total Tests:** 64 executable cases. The original delivery catalogue below is supplemented by attachment and request tests.
@@ -329,7 +329,7 @@ Assert.That(
 - **No integration tests** — Cannot verify end-to-end delivery
 - **No controller tests** — HTTP layer untested
 - **No configuration tests** — Startup validation gaps undetected
-- **No concurrency tests** — Shared `SmtpClient` risk unverified
+- **No live SMTP concurrency tests** — Independent per-submission clients avoid shared transport state, but provider connection limits and concurrent delivery remain unverified
 - **String-based timeout detection** — Tests only cover 3 specific substrings
 
 ---
