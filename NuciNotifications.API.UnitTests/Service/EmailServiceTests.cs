@@ -469,6 +469,12 @@ namespace NuciNotifications.API.UnitTests.Service
                 .Callback<MailMessage>(message =>
                 {
                     attempts += 1;
+
+                    if (attempts > 1)
+                    {
+                        Assert.That(streams, Has.All.Property(nameof(Stream.CanRead)).False);
+                    }
+
                     Assert.That(message.Attachments, Has.Count.EqualTo(2));
                     Attachment document = message.Attachments[0];
                     streams.Add(document.ContentStream);

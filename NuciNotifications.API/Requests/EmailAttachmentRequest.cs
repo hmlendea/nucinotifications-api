@@ -6,7 +6,7 @@ namespace NuciNotifications.API.Requests
     {
         [Required]
         [StringLength(255)]
-        [RegularExpression(@"\A[^/\\\r\n]+\z")]
+        [RegularExpression(@"\A[^/\\\p{Cc}]+\z")]
         public string FileName { get; set; }
 
         [Required]

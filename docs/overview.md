@@ -109,7 +109,7 @@ NuciNotifications.slnx
 | [`components.md`](./components.md) | Detailed specifications for all 12 components |
 | [`execution-flows.md`](./execution-flows.md) | 10 traced execution flows including startup, HTTP handling, SMTP delivery, and error paths |
 | [`configuration.md`](./configuration.md) | Complete configuration reference with environment variables, binding behaviour, and examples |
-| [`testing.md`](./testing.md) | Test architecture, 19 catalogued tests, execution commands, gaps, and recommended additions |
+| [`testing.md`](./testing.md) | Test architecture, delivery and attachment coverage, execution commands, and remaining gaps |
 | [`deployment.md`](./deployment.md) | Build/publish, running (direct/systemd/Docker), operations, monitoring, and troubleshooting |
 | [`data-flow.md`](./data-flow.md) | Data flows, transformations, lifecycle, security boundaries, privacy, and compliance |
 

@@ -88,6 +88,8 @@ The request body contains:
 
 A successful SMTP submission returns HTTP `200` with the standard NuciAPI success response. For signed requests, add a URL-encoded token through the `X-HMAC` header. HMAC order values are `sender: 1`, `recipient: 2`, `subject: 3`, and `body: 4`; the ordered attachment array contributes its canonical JSON at order 5. See the [API reference](docs/api.md#attachment-example) for examples and exact signing rules.
 
+Signed clients must adopt the updated request contract even when no attachments are supplied. Generate tokens with the pinned `NuciSecurity.HMAC` package; the format is not a plain HMAC-SHA256 over concatenated fields.
+
 ## ⚠️ Known Limitations
 
 - SMTP submission and retry delays are synchronous, so each request remains occupied until submission succeeds or fails.
@@ -249,15 +251,18 @@ The SMTP adapter is the repository's public transport extension point. Implement
 
 ## 🛡️ Privacy and Data
 
-See [PRIVACY.md](./PRIVACY.md) for the full data-handling document.
+NuciNotifications API processes email content and optional attachment file names and bytes to submit messages through the operator-configured SMTP server.
+
+For the detailed description of how the application handles privacy and personal data, see [PRIVACY.md](./PRIVACY.md).
 
 | Data | Purpose | Storage | Retention | Optional |
 |------|---------|---------|-----------|----------|
 | API key and SMTP credentials | Authorise API calls and authenticate SMTP submissions. | Configuration provider and singleton process memory. | Process lifetime; provider retention is operator-defined. | No |
 | Sender, recipient, subject, and body | Construct and submit an email. | Request memory and the configured SMTP server. | Request lifetime within this service; SMTP-provider retention is external. | No |
+| Attachment file names and contents | Attach optional files, including PDFs. | Request memory, decoded streams, and the configured SMTP server. | Streams are disposed after each attempt and before retries; SMTP-provider retention is external. | Yes |
 | Sender address, sender display name, recipient, subject, and outcome | Record delivery operations. | Configured NuciLog destination; `logfile.log` by default. | Operator-defined. | Yes |
 
-The application-generated delivery metadata excludes message bodies and credentials. Request-logging conduct inside external middleware and SMTP-provider data practices remain governed by those components.
+The application-generated delivery metadata excludes message bodies, attachment names and contents, and credentials. Files are not scanned for malware. Request-logging conduct inside external middleware and SMTP-provider data practices remain governed by those components.
 
 ### Data Locations
 
@@ -398,7 +403,7 @@ Comprehensive repository documentation is available in the [`docs/`](./docs/) di
 | [`components.md`](./docs/components.md) | Detailed specifications for all 12 components |
 | [`execution-flows.md`](./docs/execution-flows.md) | 10 traced execution flows including startup, HTTP handling, SMTP delivery, and error paths |
 | [`configuration.md`](./docs/configuration.md) | Complete configuration reference with environment variables, binding behaviour, and examples |
-| [`testing.md`](./docs/testing.md) | Test architecture, 19 catalogued tests, execution commands, gaps, and recommended additions |
+| [`testing.md`](./docs/testing.md) | Test architecture, delivery and attachment coverage, execution commands, and remaining gaps |
 | [`deployment.md`](./docs/deployment.md) | Build/publish, running (direct/systemd/Docker), operations, monitoring, and troubleshooting |
 | [`data-flow.md`](./docs/data-flow.md) | Data flows, transformations, lifecycle, security boundaries, privacy, and compliance |
 

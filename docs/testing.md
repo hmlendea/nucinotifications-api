@@ -13,8 +13,8 @@ NuciNotifications.API.UnitTests/
     └── EmailServiceTests.cs
 ```
 
-**Framework:** NUnit 4.6.1 + Moq 4.20.72
-**Test Runner:** NUnit3TestAdapter 6.3.0 + Microsoft.NET.Test.Sdk 18.10.1
+**Framework:** NUnit 5.0.0 + Moq 4.21.0
+**Test Runner:** NUnit3TestAdapter 6.3.1 + Microsoft.NET.Test.Sdk 18.11.0
 **Target Framework:** net10.0
 
 ---
@@ -32,11 +32,18 @@ NuciNotifications.API.UnitTests/
 | Middleware pipeline | ❌ 0 tests | — |
 | Configuration binding | ❌ 0 tests | — |
 | SmtpClientWrapper / live SMTP | ❌ 0 tests | — |
-| HMAC signing/verification | ❌ 0 tests | — |
+| HMAC signing/verification | Package round-trip and attachment tampering tests | [SendEmailRequestTests.cs](../NuciNotifications.API.UnitTests/Requests/SendEmailRequestTests.cs) |
 | Concurrency / shared SmtpClient | ❌ 0 tests | — |
 | End-to-end integration | ❌ 0 tests | — |
 
-**Total Tests:** 19
+**Total Tests:** 64 executable cases. The original delivery catalogue below is supplemented by attachment and request tests.
+
+### Attachment Coverage
+
+- [EmailServiceTests.cs](../NuciNotifications.API.UnitTests/Service/EmailServiceTests.cs) covers omitted, null, empty, single, and multiple attachments, exact binary and PDF bytes, case-insensitive PDF MIME types, Base64 transfer encoding, retries, and stream disposal. Prior-attempt streams must be closed before the next SMTP call.
+- [SendEmailRequestTests.cs](../NuciNotifications.API.UnitTests/Requests/SendEmailRequestTests.cs) covers file names, length limits, directory separators, control characters, missing fields, malformed Base64, null entries, JSON binding, canonical signing content, and package-level token verification after JSON round-tripping. Changing a name, bytes, ordering, or removing attachments invalidates the token.
+- PDF tests inspect the outgoing message at the mocked SMTP boundary using a complete one-page PDF fixture; live SMTP delivery and recipient-side PDF rendering are not tested.
+- HTTP binding, authentication headers, provider limits, malware scanning, and live delivery remain outside unit-test coverage.
 
 ---
 

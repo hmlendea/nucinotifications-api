@@ -4,6 +4,8 @@ using System.Text.Json;
 
 using NUnit.Framework;
 
+using NuciSecurity.HMAC;
+
 using NuciNotifications.API.Requests;
 
 namespace NuciNotifications.API.UnitTests.Requests
@@ -23,6 +25,8 @@ namespace NuciNotifications.API.UnitTests.Requests
         [TestCase(@"..\praise-the-sun.txt", "U29sYWlyZQ==", false)]
         [TestCase("praise\r\nsun.txt", "U29sYWlyZQ==", false)]
         [TestCase("praise-the-sun.txt\n", "U29sYWlyZQ==", false)]
+        [TestCase("praise\0sun.pdf", "U29sYWlyZQ==", false)]
+        [TestCase("praise\tsun.pdf", "U29sYWlyZQ==", false)]
         public void GivenAttachmentFields_WhenValidating_ThenValidityMatchesTheContract(
             string fileName,
             string content,
@@ -108,6 +112,61 @@ namespace NuciNotifications.API.UnitTests.Requests
 
             Assert.That(request.AttachmentsSignatureContent, Is.EqualTo(
                 "[{\"fileName\":\"report.pdf\",\"content\":\"JVBERi0xLjQ=\"},{\"fileName\":\"greeting.txt\",\"content\":\"U29sYWlyZQ==\"}]"));
+        }
+
+        [TestCase("name")]
+        [TestCase("content")]
+        [TestCase("order")]
+        [TestCase("remove")]
+        public void GivenSignedAttachments_WhenTampering_ThenThePackageRejectsTheToken(string change)
+        {
+            SendEmailRequest request = new()
+            {
+                Recipient = "alex@example.com",
+                Subject = "Praise the Sun!",
+                Body = "Solaire",
+                Attachments =
+                [
+                    new() { FileName = "report.pdf", Content = "JVBERi0xLjQ=" },
+                    new() { FileName = "greeting.txt", Content = "U29sYWlyZQ==" }
+                ]
+            };
+            string token = HmacEncoder.GenerateToken(request, "test-signing-key");
+            string json = JsonSerializer.Serialize(request, JsonSerializerOptions.Web);
+            SendEmailRequest received = JsonSerializer.Deserialize<SendEmailRequest>(json, JsonSerializerOptions.Web);
+
+            Assert.That(HmacValidator.IsTokenValid(token, received, "test-signing-key"));
+
+            switch (change)
+            {
+                case "name":
+                    received.Attachments[0].FileName = "changed.pdf";
+                    break;
+                case "content":
+                    received.Attachments[0].Content = "AAECA/7/";
+                    break;
+                case "order":
+                    received.Attachments = [received.Attachments[1], received.Attachments[0]];
+                    break;
+                case "remove":
+                    received.Attachments = [];
+                    break;
+            }
+
+            Assert.That(HmacValidator.IsTokenValid(token, received, "test-signing-key"), Is.False);
+        }
+
+        [TestCase("{}")]
+        [TestCase("{\"attachments\":null}")]
+        [TestCase("{\"attachments\":[]}")]
+        public void GivenNoFiles_WhenSigning_ThenAllOptionalRepresentationsProduceTheSameToken(string json)
+        {
+            SendEmailRequest request = JsonSerializer.Deserialize<SendEmailRequest>(json, JsonSerializerOptions.Web);
+            SendEmailRequest emptyRequest = new();
+
+            Assert.That(
+                HmacEncoder.GenerateToken(request, "test-signing-key"),
+                Is.EqualTo(HmacEncoder.GenerateToken(emptyRequest, "test-signing-key")));
         }
 
         [Test]

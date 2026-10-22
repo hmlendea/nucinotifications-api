@@ -161,6 +161,9 @@ Output: MailMessage
 - `request.Recipient` → `MailMessage.To[0].Address`
 - `request.Subject` → `MailMessage.Subject`
 - `request.Body` → `MailMessage.Body`
+- Each optional `request.Attachments` entry is Base64-decoded into a separate memory stream and attached with its original file name. PDF names select `application/pdf`; other files use `application/octet-stream`. Transfer encoding is Base64, preserving the original bytes. Message disposal releases every attachment stream, including before a timeout retry reconstructs the message. No local path or remote URL is opened.
+
+The request and model excerpts above show scalar fields only. The optional array, validation, and signing representation are specified in the [API reference](api.md); null, empty, single, and multiple files are supported. Application-generated delivery metadata excludes attachment names and contents.
 
 ### 2.4 SMTP Submission
 

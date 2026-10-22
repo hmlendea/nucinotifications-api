@@ -281,7 +281,9 @@ public sealed class SendEmailRequest : NuciApiRequest
 | Subject | string | Yes | 3 | Message subject |
 | Body | string | Yes | 4 | Plain-text message body |
 
-**Validation:** Data annotations (`[Required]`) enforced by `[ApiController]`
+**Attachments:** The request also implements `IValidatableObject` and exposes an optional `Attachments` array of [EmailAttachmentRequest](../NuciNotifications.API/Requests/EmailAttachmentRequest.cs) objects. Each entry requires a file name and Base64 content; directory separators and control characters are rejected. Omitted, null, and empty arrays are accepted. The scalar-only excerpt above omits these members; see the [API reference](api.md) for the full contract.
+
+**Validation:** Data annotations and attachment validation are enforced by `[ApiController]`.
 
 **HMAC Ordering:** Scalar fields use orders 1 through 4. Canonical attachment JSON follows at order 5; the raw array is excluded with `[HmacIgnore]`. See the [API reference](api.md#hmac-authentication) for the complete signing contract.
 

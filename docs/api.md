@@ -39,7 +39,7 @@ Submits a plain-text email with optional file attachments for delivery via the c
 - `subject`: Email subject. **Required.**
 - `body`: Email body. **Required.**
 - `attachments`: Optional array of files. Omit it, use `null`, or supply `[]` to send without attachments. Multiple files, including multiple PDFs, are supported.
-- Each attachment requires `fileName` (at most 255 characters, without directory separators or line breaks) and `content` (non-empty Base64-encoded bytes, without a data-URL prefix). Null entries, missing fields, invalid file names, or invalid Base64 return **400 Bad Request**.
+- Each attachment requires `fileName` (at most 255 characters, without directory separators or control characters) and `content` (non-empty Base64-encoded bytes, without a data-URL prefix). Null entries, missing fields, invalid file names, or invalid Base64 return **400 Bad Request**.
 - PDF files are sent byte-for-byte with MIME type `application/pdf` and Base64 transfer encoding when their file name ends in `.pdf` (case-insensitive). Other files use `application/octet-stream`. The API transports files without parsing or converting their contents; SMTP providers may impose their own size or attachment policies.
 - Only the `attachments` array supplies files; it supports zero, one, or multiple entries. There is no file-extension allowlist: text, CSV, JSON, images, Office documents, ZIP archives, and other binary files can be attached. Files are transported unchanged, not validated for their format or scanned for malware.
 - Attachment content stays in memory and is disposed with the email after delivery attempts. No server-side file path or remote URL is read. Existing HTTP request-size and SMTP message-size limits still apply; Base64 increases payload size by approximately one third.
@@ -72,11 +72,12 @@ This attaches two text files containing `Solaire`. For a PDF, use a `.pdf` file 
   - `AttachmentsSignatureContent` (HmacOrder: 5, computed server-side; not a JSON input field)
 - **Order:** Fields are concatenated in HmacOrder (1, 2, 3, 4, 5). For non-empty `attachments`, the final value is the compact JSON array serialized with .NET `JsonSerializerOptions.Web`, preserving array order and using `fileName` then `content` for each entry. For example: `[{"fileName":"report.pdf","content":"JVBERi0xLjQ="}]`. Match .NET JSON escaping exactly when generating signatures in other languages. Null or empty arrays contribute an empty string.
 - **Attachment Signing:** `AttachmentsSignatureContent` provides a deterministic string for signing the complete array, including file names, contents, and ordering. It is derived from `attachments` and excluded from request JSON; clients must include the equivalent string when computing their HMAC.
-- **Algorithm:** HMAC-SHA256 (as defined by NuciSecurity.HMAC package)
+- **Algorithm:** The versioned `NuciSecurity.HMAC` 4.1.4 token format uses HMAC-SHA512, field separators, null markers, a length/checksum prefix, a static salt, and custom token encoding. It is not plain concatenation followed by standard HMAC-SHA256.
 - **How to Compute:**
-  1. Concatenate the values of the fields in HmacOrder (missing/empty fields are treated as empty strings).
-  2. Compute HMAC-SHA256 using the API key as the secret.
-  3. URL-encode the resulting token and set as `X-HMAC` header.
+  1. Construct the complete `SendEmailRequest`, including attachments and any inherited request fields.
+  2. Call `HmacEncoder.GenerateToken(request, apiKey)` from the pinned package.
+  3. URL-encode the returned string and set it as the `X-HMAC` header.
+- **Compatibility:** Adding the signed attachment representation changes the signing input even for requests without files, because the package includes a separator for every signed property. Signed clients using the previous request shape must adopt the updated contract. API-key-only callers are unaffected.
 - **Validation:** The server validates the HMAC if present. If both `Authorization` and `X-HMAC` are present, both must be valid.
 
 ### API Key Authentication
@@ -102,17 +103,14 @@ Content-Type: application/json
 }
 ```
 
-### Example HMAC Calculation (Pseudo-Python)
+### Example HMAC Calculation
 
-```python
-import hmac, hashlib, urllib.parse
-
-fields = [sender, recipient, subject, body, attachments_signature_content]
-key = api_key.encode()
-msg = ''.join(fields).encode()
-token = hmac.new(key, msg, hashlib.sha256).digest()
-url_encoded = urllib.parse.quote_plus(token)
+```csharp
+string token = HmacEncoder.GenerateToken(request, apiKey);
+string encodedToken = Uri.EscapeDataString(token);
 ```
+
+The example uses `NuciSecurity.HMAC` and `System`. Non-.NET clients must reproduce the [versioned package signing contract](https://github.com/hmlendea/nucisecurity/blob/v4.1.4/NuciSecurity.HMAC/HmacEncoder.cs), including inherited request properties; the attachment JSON alone is not the complete signing input.
 
 ### Responses
 

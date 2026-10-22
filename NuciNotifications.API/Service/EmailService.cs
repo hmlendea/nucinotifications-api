@@ -92,6 +92,8 @@ namespace NuciNotifications.API.Service
                         exception);
                 }
 
+                message.Dispose();
+
                 Thread.Sleep(
                     settings.DelayBetweenAttemptsInSeconds * MillisecondsPerSecond);
                 Send(request, attemptsLeft - 1);
