@@ -103,6 +103,8 @@ This project follows the [Code of Conduct](./CODE_OF_CONDUCT.md).
 
 Report security vulnerabilities per the [Security Policy](SECURITY.md).
 
+The repository includes automated security scanning via `.github/workflows/security.yml` that runs on pushes, pull requests, and a weekly schedule. It checks for vulnerable packages and runs CodeQL static analysis. Results appear in the GitHub Security tab.
+
 ## 📄 License
 
 By contributing, you agree that your contributions will be licensed under the GNU General Public License v3.0.

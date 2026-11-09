@@ -1,6 +1,7 @@
 [![Donate](https://img.shields.io/badge/-%E2%99%A5%20Donate-%23ff69b4)](https://hmlendea.go.ro/funding)
 [![Latest Release](https://img.shields.io/github/v/release/hmlendea/nucinotifications-api)](https://github.com/hmlendea/nucinotifications-api/releases/latest)
 [![Build Status](https://github.com/hmlendea/nucinotifications-api/actions/workflows/dotnet.yml/badge.svg)](https://github.com/hmlendea/nucinotifications-api/actions/workflows/dotnet.yml)
+[![Security Scan](https://github.com/hmlendea/nucinotifications-api/actions/workflows/security.yml/badge.svg)](https://github.com/hmlendea/nucinotifications-api/actions/workflows/security.yml)
 [![License](https://img.shields.io/github/license/hmlendea/nucinotifications-api)](https://github.com/hmlendea/nucinotifications-api/blob/master/LICENSE)
 
 # NuciNotifications API
@@ -321,6 +322,19 @@ The `.github/workflows/dotnet.yml` workflow restores, compiles, and tests the so
 dotnet restore
 dotnet build --no-restore
 dotnet test --no-build --verbosity normal
+```
+
+### Security Scanning
+
+The `.github/workflows/security.yml` workflow performs security scanning on pushes, pull requests targeting `master`, and a weekly schedule. It runs:
+
+- Vulnerable package detection via `dotnet list package --vulnerable --include-transitive`
+- CodeQL static analysis for C#
+
+Results are uploaded to GitHub Code Scanning. Reproduce the vulnerable package check locally with:
+
+```bash
+dotnet list package --vulnerable --include-transitive
 ```
 
 ### Release
